@@ -1,4 +1,4 @@
-package uk.anbu.poc.filewatcher;
+package uk.anbu.samples.filewatcher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

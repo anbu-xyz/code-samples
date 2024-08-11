@@ -1,4 +1,4 @@
-package uk.anbu.poc.filewatcher;
+package uk.anbu.samples.filewatcher;
 
 import javax.swing.*;
 import java.awt.*;
