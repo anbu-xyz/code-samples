@@ -100,7 +100,7 @@ public class DirectoryWatcherApp {
                     Path eventPath = dir.resolve((Path) event.context());
                     if (pathMatchers.stream().anyMatch(matcher -> matcher.matches(eventPath.getFileName()))) {
                         log.info("Event of kind {} received {} times for file {}", event.kind(), event.count(), eventPath);
-                        triggerCommand();
+                        triggerCommand(eventPath);
                     }
 
                     // If a new directory is created and we're monitoring subdirectories, register it
@@ -136,9 +136,15 @@ public class DirectoryWatcherApp {
         watchKeyToPath.clear();
     }
 
-    private void triggerCommand() {
+    private void triggerCommand(Path eventPath) {
         try {
             String command = watcherFrame.getCommand();
+
+            // Replace placeholders
+            command = command.replace("${file}", eventPath.getFileName().toString())
+                    .replace("${file_dir}", eventPath.getParent().toString())
+                    .replace("${file_with_dir}", eventPath.toString());
+
             log.info("Running command: " + command);
 
             List<String> commandList = new ArrayList<>();

@@ -62,6 +62,7 @@ public class WatcherFrame {
         watchActiveCheckbox.addActionListener(e -> {
             if (watchActiveCheckbox.isSelected()) {
                 setInputFieldsEditable(false);
+                saveCurrentConfig();
                 startWatching.run();
             } else {
                 setInputFieldsEditable(true);
@@ -72,14 +73,18 @@ public class WatcherFrame {
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                configManager.saveConfig(new ConfigManager.Config(
-                    directoryField.getText(),
-                    commandField.getText(),
-                    getGlobPatterns(),
-                    monitorSubdirectoriesCheckbox.isSelected()
-                ));
+                saveCurrentConfig();
             }
         });
+    }
+
+    public void saveCurrentConfig() {
+        configManager.saveConfig(new ConfigManager.Config(
+                directoryField.getText(),
+                commandField.getText(),
+                getGlobPatterns(),
+                monitorSubdirectoriesCheckbox.isSelected()
+        ));
     }
 
     private void setInputFieldsEditable(boolean editable) {
@@ -88,7 +93,6 @@ public class WatcherFrame {
         commandField.setEditable(editable);
         monitorSubdirectoriesCheckbox.setEnabled(editable);
 
-        // Optionally change the appearance of the fields when not editable
         Color backgroundColor = editable ? Color.WHITE : Color.LIGHT_GRAY;
         directoryField.setBackground(backgroundColor);
         globPatternsField.setBackground(backgroundColor);
