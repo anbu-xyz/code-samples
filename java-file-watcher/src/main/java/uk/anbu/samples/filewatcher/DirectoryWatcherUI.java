@@ -16,7 +16,9 @@ public class DirectoryWatcherUI {
     private final JTextField workingDirField;
     private final JTextField globPatternsField;
     private final JTextField commandField;
-    private final JCheckBox watchActiveCheckbox;
+    private final JButton watchButton;
+    private boolean isWatching = false;
+
     public DirectoryWatcherUI(Runnable startWatching, Runnable stopWatching, ConfigManager configManager) {
         this.configManager = configManager;
 
@@ -45,25 +47,26 @@ public class DirectoryWatcherUI {
         checkboxPanel.add(consolidateChangesCheckbox);
         mainPanel.add(checkboxPanel, gbc);
 
-        // Watch Active Checkbox
+        // Watch Button
         gbc.gridy++;
-        watchActiveCheckbox = new JCheckBox("Watch Active");
-        mainPanel.add(watchActiveCheckbox, gbc);
-
+        watchButton = new JButton("Watch");
+        mainPanel.add(watchButton, gbc);
         frame.add(mainPanel, BorderLayout.CENTER);
 
-        watchActiveCheckbox.addActionListener(e -> {
-            if (watchActiveCheckbox.isSelected()) {
+        watchButton.addActionListener(e -> {
+            if (!isWatching) {
                 if (validateDirectories()) {
                     setInputFieldsEditable(false);
                     saveCurrentConfig();
                     startWatching.run();
-                } else {
-                    watchActiveCheckbox.setSelected(false);
+                    watchButton.setText("Stop");
+                    isWatching = true;
                 }
             } else {
                 setInputFieldsEditable(true);
                 stopWatching.run();
+                watchButton.setText("Watch");
+                isWatching = false;
             }
         });
 
@@ -145,6 +148,8 @@ public class DirectoryWatcherUI {
         workingDirField.setBackground(backgroundColor);
         globPatternsField.setBackground(backgroundColor);
         commandField.setBackground(backgroundColor);
+
+        watchButton.setText(isWatching ? "Stop" : "Watch");
     }
 
     void show() {
@@ -156,6 +161,8 @@ public class DirectoryWatcherUI {
         commandField.setText(config.command());
         monitorSubdirectoriesCheckbox.setSelected(config.monitorSubdirectories());
         consolidateChangesCheckbox.setSelected(config.consolidateChanges());
+        isWatching = false;
+        watchButton.setText("Watch");
 
         frame.pack();
         frame.setLocationRelativeTo(null);
