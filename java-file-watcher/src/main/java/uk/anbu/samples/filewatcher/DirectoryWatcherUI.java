@@ -17,7 +17,6 @@ public class DirectoryWatcherUI {
     private final JTextField globPatternsField;
     private final JTextField commandField;
     private final JCheckBox watchActiveCheckbox;
-
     public DirectoryWatcherUI(Runnable startWatching, Runnable stopWatching, ConfigManager configManager) {
         this.configManager = configManager;
 
@@ -25,55 +24,34 @@ public class DirectoryWatcherUI {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
 
-        // Directory input field and subdirectories checkbox
-        directoryField = new JTextField(30);
-        JPanel directoryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        directoryPanel.add(new JLabel("Directory to Monitor:"));
-        directoryPanel.add(directoryField);
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Working directory input field
-        workingDirField = new JTextField(30);
-        JPanel workingDirPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        workingDirPanel.add(new JLabel("Working Directory:"));
-        workingDirPanel.add(workingDirField);
+        addLabelAndField(mainPanel, gbc, "Directory to Monitor", directoryField = new JTextField(30));
+        addLabelAndField(mainPanel, gbc, "Working Directory", workingDirField = new JTextField(30));
+        addLabelAndField(mainPanel, gbc, "File Glob Pattern", globPatternsField = new JTextField(30));
+        addLabelAndField(mainPanel, gbc, "Command to Trigger", commandField = new JTextField(30));
 
-        // Glob pattern input field
-        globPatternsField = new JTextField(30);
-        JPanel globPatternPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        globPatternPanel.add(new JLabel("File Glob Pattern:"));
-        globPatternPanel.add(globPatternsField);
-
-        // Command input field
-        commandField = new JTextField(30);
-        JPanel commandPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        commandPanel.add(new JLabel("Command to Trigger:"));
-        commandPanel.add(commandField);
-
-        // Checkbox panel
-        JPanel checkboxPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        consolidateChangesCheckbox = new JCheckBox("Consolidate Changes");
+        // Checkboxes
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 2;
+        JPanel checkboxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         monitorSubdirectoriesCheckbox = new JCheckBox("Monitor Subdirectories");
+        consolidateChangesCheckbox = new JCheckBox("Consolidate Changes");
         checkboxPanel.add(monitorSubdirectoriesCheckbox);
         checkboxPanel.add(consolidateChangesCheckbox);
+        mainPanel.add(checkboxPanel, gbc);
 
         // Watch Active Checkbox
+        gbc.gridy++;
         watchActiveCheckbox = new JCheckBox("Watch Active");
-        JPanel watchPanel = new JPanel(new FlowLayout());
-        watchPanel.add(watchActiveCheckbox);
+        mainPanel.add(watchActiveCheckbox, gbc);
 
-        // Panel to group all input fields
-        JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
-        inputPanel.add(directoryPanel);
-        inputPanel.add(workingDirPanel);
-        inputPanel.add(globPatternPanel);
-        inputPanel.add(commandPanel);
-        inputPanel.add(checkboxPanel);
-        inputPanel.add(watchPanel);
+        frame.add(mainPanel, BorderLayout.CENTER);
 
-        frame.add(inputPanel, BorderLayout.NORTH);
-
-        // Watch Active Checkbox listener
         watchActiveCheckbox.addActionListener(e -> {
             if (watchActiveCheckbox.isSelected()) {
                 if (validateDirectories()) {
@@ -95,6 +73,18 @@ public class DirectoryWatcherUI {
                 saveCurrentConfig();
             }
         });
+    }
+
+    private void addLabelAndField(JPanel panel, GridBagConstraints gbc, String labelText, JTextField field) {
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
+        panel.add(new JLabel(labelText), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        panel.add(field, gbc);
     }
 
     public void saveCurrentConfig() {
