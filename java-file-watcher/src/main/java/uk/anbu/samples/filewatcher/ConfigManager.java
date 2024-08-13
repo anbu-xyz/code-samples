@@ -37,7 +37,9 @@ public class ConfigManager {
 
     public Config loadConfig() {
         Properties configPropertiesFile = new Properties();
-        var defaultConfig = new Config(System.getProperty("user.home"),  System.getProperty("user.home"), "echo 'hello'", List.of("*"), false, true);
+        final String defaultCommand = "echo \"File ${file} in directory ${file_dir} was changed. Full path: ${file_with_dir}\" ";
+        var defaultConfig = new Config(System.getProperty("user.home"),  System.getProperty("user.home"), defaultCommand,
+                List.of("*"), false, true);
         if (!Path.of(configFilePath).toFile().exists()) {
             saveConfig(defaultConfig);
         }
@@ -58,6 +60,7 @@ public class ConfigManager {
         }
     }
 
-    public record Config(String watchedDirectory, String workingDirectory, String command, List<String> globPatterns, boolean monitorSubdirectories, boolean consolidateChanges) {
+    public record Config(String watchedDirectory, String workingDirectory, String command, List<String> globPatterns,
+                         boolean monitorSubdirectories, boolean consolidateChanges) {
     }
 }
