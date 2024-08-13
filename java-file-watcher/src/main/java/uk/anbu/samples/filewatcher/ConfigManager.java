@@ -22,6 +22,7 @@ public class ConfigManager {
     public void saveConfig(Config config) {
         Properties configPropertiesFile = new Properties();
         configPropertiesFile.setProperty("directory", config.watchedDirectory);
+        configPropertiesFile.setProperty("workingDirectory", config.workingDirectory);
         configPropertiesFile.setProperty("command", config.command);
         configPropertiesFile.setProperty("globPatterns", String.join(",", config.globPatterns));
         configPropertiesFile.setProperty("monitorSubdirectories", String.valueOf(config.monitorSubdirectories));
@@ -35,7 +36,7 @@ public class ConfigManager {
 
     public Config loadConfig() {
         Properties configPropertiesFile = new Properties();
-        var defaultConfig = new Config(System.getProperty("user.home"), "echo 'hello'", List.of("*"), false);
+        var defaultConfig = new Config(System.getProperty("user.home"),  System.getProperty("user.home"), "echo 'hello'", List.of("*"), false);
         if (!Path.of(configFilePath).toFile().exists()) {
             saveConfig(defaultConfig);
         }
@@ -45,15 +46,16 @@ public class ConfigManager {
 
             var watchedDirectory = configPropertiesFile.getProperty("directory", System.getProperty("user.home"));
             var command = configPropertiesFile.getProperty("command", "");
+            var workingDirectory = configPropertiesFile.getProperty("workingDirectory", System.getProperty("user.home"));
             var globPatterns = Arrays.asList(configPropertiesFile.getProperty("globPatterns", "*").split(","));
             var monitorSubdirectories = Boolean.parseBoolean(configPropertiesFile.getProperty("monitorSubdirectories", "false"));
-            return new Config(watchedDirectory, command, globPatterns, monitorSubdirectories);
+            return new Config(watchedDirectory, workingDirectory, command, globPatterns, monitorSubdirectories);
         } catch (IOException io) {
             log.error("Error reading config file", io);
             return defaultConfig;
         }
     }
 
-    public record Config(String watchedDirectory, String command, List<String> globPatterns, boolean monitorSubdirectories) {
+    public record Config(String watchedDirectory, String workingDirectory, String command, List<String> globPatterns, boolean monitorSubdirectories) {
     }
 }

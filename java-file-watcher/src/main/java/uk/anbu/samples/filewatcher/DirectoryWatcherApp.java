@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -139,6 +140,7 @@ public class DirectoryWatcherApp {
     private void triggerCommand(Path eventPath) {
         try {
             String command = watcherFrame.getCommand();
+            String workingDirectory = watcherFrame.getWorkingDirectory();
 
             // Replace placeholders
             command = command.replace("${file}", eventPath.getFileName().toString())
@@ -146,6 +148,7 @@ public class DirectoryWatcherApp {
                     .replace("${file_with_dir}", eventPath.toString());
 
             log.info("Running command: " + command);
+            log.info("Working directory: {}", workingDirectory);
 
             List<String> commandList = new ArrayList<>();
 
@@ -164,7 +167,13 @@ public class DirectoryWatcherApp {
             // Add the actual command
             commandList.add(command);
 
+
             ProcessBuilder processBuilder = new ProcessBuilder(commandList);
+
+            // Set the working directory for the process
+            if (workingDirectory != null && !workingDirectory.isEmpty()) {
+                processBuilder.directory(new File(workingDirectory));
+            }
             Process process = processBuilder.start();
 
             // Set up StreamGobblers for stdout and stderr
