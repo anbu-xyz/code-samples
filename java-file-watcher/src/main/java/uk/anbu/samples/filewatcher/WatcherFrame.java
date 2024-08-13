@@ -2,6 +2,7 @@ package uk.anbu.samples.filewatcher;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -69,9 +70,13 @@ public class WatcherFrame {
         // Watch Active Checkbox listener
         watchActiveCheckbox.addActionListener(e -> {
             if (watchActiveCheckbox.isSelected()) {
-                setInputFieldsEditable(false);
-                saveCurrentConfig();
-                startWatching.run();
+                if (validateDirectories()) {
+                    setInputFieldsEditable(false);
+                    saveCurrentConfig();
+                    startWatching.run();
+                } else {
+                    watchActiveCheckbox.setSelected(false);
+                }
             } else {
                 setInputFieldsEditable(true);
                 stopWatching.run();
@@ -94,6 +99,39 @@ public class WatcherFrame {
                 getGlobPatterns(),
                 monitorSubdirectoriesCheckbox.isSelected()
         ));
+    }
+
+    private boolean validateDirectories() {
+        String watchedDir = directoryField.getText().trim();
+        String workingDir = workingDirField.getText().trim();
+
+        StringBuilder errorMessage = new StringBuilder();
+
+        if (!isValidDirectory(watchedDir)) {
+            errorMessage.append("The watched directory is not valid or doesn't exist.\n");
+        }
+
+        if (!workingDir.isEmpty() && !isValidDirectory(workingDir)) {
+            errorMessage.append("The working directory is not valid or doesn't exist.\n");
+        }
+
+        if (!errorMessage.isEmpty()) {
+            JOptionPane.showMessageDialog(frame,
+                    errorMessage.toString(),
+                    "Invalid Directory",
+                    JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isValidDirectory(String path) {
+        if (path.isEmpty()) {
+            return false;
+        }
+        File dir = new File(path);
+        return dir.exists() && dir.isDirectory();
     }
 
     private void setInputFieldsEditable(boolean editable) {
