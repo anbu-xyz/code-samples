@@ -1,5 +1,6 @@
 package uk.anbu.samples.filewatcher;
 
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,8 +39,14 @@ public class ConfigManager {
     public Config loadConfig() {
         Properties configPropertiesFile = new Properties();
         final String defaultCommand = "echo \"File ${file} in directory ${file_dir} was changed. Full path: ${file_with_dir}\" ";
-        var defaultConfig = new Config(System.getProperty("user.home"),  System.getProperty("user.home"), defaultCommand,
-                List.of("*"), false, true);
+        var defaultConfig = Config.builder()
+                .watchedDirectory(System.getProperty("user.home"))
+                .workingDirectory(System.getProperty("user.home"))
+                .command(defaultCommand)
+                .globPatterns(List.of("*"))
+                .monitorSubdirectories(false)
+                .consolidateChanges(true)
+                .build();
         if (!Path.of(configFilePath).toFile().exists()) {
             saveConfig(defaultConfig);
         }
@@ -60,6 +67,7 @@ public class ConfigManager {
         }
     }
 
+    @Builder
     public record Config(String watchedDirectory, String workingDirectory, String command, List<String> globPatterns,
                          boolean monitorSubdirectories, boolean consolidateChanges) {
     }

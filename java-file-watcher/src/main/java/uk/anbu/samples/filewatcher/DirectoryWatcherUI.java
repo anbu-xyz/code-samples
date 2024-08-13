@@ -7,18 +7,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class WatcherFrame {
+public class DirectoryWatcherUI {
     private final ConfigManager configManager;
-    private JFrame frame;
-    private JTextField directoryField;
-    private JCheckBox monitorSubdirectoriesCheckbox;
-    private JCheckBox consolidateChangesCheckbox;
-    private JTextField workingDirField;
-    private JTextField globPatternsField;
-    private JTextField commandField;
-    private JCheckBox watchActiveCheckbox;
+    private final JFrame frame;
+    private final JTextField directoryField;
+    private final JCheckBox monitorSubdirectoriesCheckbox;
+    private final JCheckBox consolidateChangesCheckbox;
+    private final JTextField workingDirField;
+    private final JTextField globPatternsField;
+    private final JTextField commandField;
+    private final JCheckBox watchActiveCheckbox;
 
-    public WatcherFrame(Runnable startWatching, Runnable stopWatching, ConfigManager configManager) {
+    public DirectoryWatcherUI(Runnable startWatching, Runnable stopWatching, ConfigManager configManager) {
         this.configManager = configManager;
 
         frame = new JFrame("Directory Watcher");
@@ -98,14 +98,15 @@ public class WatcherFrame {
     }
 
     public void saveCurrentConfig() {
-        configManager.saveConfig(new ConfigManager.Config(
-                directoryField.getText(),
-                workingDirField.getText(),
-                commandField.getText(),
-                getGlobPatterns(),
-                monitorSubdirectoriesCheckbox.isSelected(),
-                consolidateChangesCheckbox.isSelected()
-        ));
+        var config = ConfigManager.Config.builder()
+                .watchedDirectory(directoryField.getText())
+                .workingDirectory(workingDirField.getText())
+                .command(commandField.getText())
+                .globPatterns(getGlobPatterns())
+                .monitorSubdirectories(monitorSubdirectoriesCheckbox.isSelected())
+                .consolidateChanges(consolidateChangesCheckbox.isSelected())
+                .build();
+        configManager.saveConfig(config);
     }
 
     private boolean validateDirectories() {
@@ -171,30 +172,21 @@ public class WatcherFrame {
         frame.setVisible(true);
     }
 
-    public String getDirectory() {
-        return directoryField.getText();
-    }
-
     public List<String> getGlobPatterns() {
         return Arrays.stream(globPatternsField.getText().split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toList());
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 
-    public String getWorkingDirectory() {
-        return workingDirField.getText();
-    }
-
-    public String getCommand() {
-        return commandField.getText();
-    }
-
-    public boolean isMonitorSubdirectories() {
-        return monitorSubdirectoriesCheckbox.isSelected();
-    }
-
-    public boolean isConsolidateChanges() {
-        return consolidateChangesCheckbox.isSelected();
+    public ConfigManager.Config config() {
+        return ConfigManager.Config.builder()
+                .watchedDirectory(directoryField.getText())
+                .workingDirectory(workingDirField.getText())
+                .command(commandField.getText())
+                .globPatterns(getGlobPatterns())
+                .monitorSubdirectories(monitorSubdirectoriesCheckbox.isSelected())
+                .consolidateChanges(consolidateChangesCheckbox.isSelected())
+                .build();
     }
 }

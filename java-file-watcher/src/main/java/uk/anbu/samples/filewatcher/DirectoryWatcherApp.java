@@ -1,10 +1,8 @@
 package uk.anbu.samples.filewatcher;
 
-import com.google.inject.Guice;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -22,19 +20,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DirectoryWatcherApp {
     private final ConfigManager configManager;
-    private WatcherFrame watcherFrame;
+    private DirectoryWatcherUI watcherUI;
     private WatchService watchService;
     private ScheduledExecutorService executor;
     private Future<?> watchTask;
     private List<PathMatcher> pathMatchers;
     private Map<WatchKey, Path> watchKeyToPath = new HashMap<>();
 
-    public static void main(String[] args) {
-        var module = Guice.createInjector(new AppModule());
-        var app = module.getInstance(DirectoryWatcherApp.class);
-
-        SwingUtilities.invokeLater(app::run);
-    }
 
     @Inject
     public DirectoryWatcherApp(ConfigManager configManager) {
@@ -42,8 +34,8 @@ public class DirectoryWatcherApp {
     }
 
     public void run() {
-        watcherFrame = new WatcherFrame(this::startWatching, this::stopWatching, this.configManager);
-        watcherFrame.show();
+        watcherUI = new DirectoryWatcherUI(this::startWatching, this::stopWatching, this.configManager);
+        watcherUI.show();
 
         try {
             watchService = FileSystems.getDefault().newWatchService();
@@ -56,10 +48,10 @@ public class DirectoryWatcherApp {
 
     private void startWatching() {
         try {
-            String directoryPath = watcherFrame.getDirectory();
-            List<String> globPatterns = watcherFrame.getGlobPatterns();
-            boolean monitorSubdirectories = watcherFrame.isMonitorSubdirectories();
-            boolean consolidateChanges = watcherFrame.isConsolidateChanges();
+            String directoryPath = watcherUI.config().watchedDirectory();
+            List<String> globPatterns = watcherUI.config().globPatterns();
+            boolean monitorSubdirectories = watcherUI.config().monitorSubdirectories();
+            boolean consolidateChanges = watcherUI.config().consolidateChanges();
 
             Path path = Paths.get(directoryPath);
 
@@ -69,7 +61,7 @@ public class DirectoryWatcherApp {
             if (monitorSubdirectories) {
                 Files.walkFileTree(path, new SimpleFileVisitor<>() {
                     @Override
-                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                         registerDirectory(dir);
                         return FileVisitResult.CONTINUE;
                     }
@@ -111,7 +103,10 @@ public class DirectoryWatcherApp {
             if (pathMatchers.stream().anyMatch(matcher -> matcher.matches(firstEventPath.getFileName()))) {
                 if (consolidateChanges) {
                     triggerCommand(firstEvent, firstEventPath);
-                    restOfEvents.forEach(fi -> log.info("Event of kind {} received {} times for file {}. Ignored due to change consolidation.", fi.kind(), fi.count(), dir.resolve((Path) fi.context())));
+                    restOfEvents.forEach(fi ->
+                            log.info("Event of kind {} received {} times for file {}. Ignored due to change consolidation.",
+                                    fi.kind(), fi.count(), dir.resolve((Path) fi.context()))
+                    );
                 } else {
                     polledEvents.forEach(fi -> triggerCommand(fi, dir.resolve((Path) fi.context())));
                 }
@@ -151,10 +146,9 @@ public class DirectoryWatcherApp {
     private void triggerCommand(WatchEvent<?> event, Path eventPath) {
         log.info("Event of kind {} received {} times for file {}. Triggering command.", event.kind(), event.count(), eventPath);
         try {
-            String command = watcherFrame.getCommand();
-            String workingDirectory = watcherFrame.getWorkingDirectory();
+            String command = watcherUI.config().command();
+            String workingDirectory = watcherUI.config().workingDirectory();
 
-            // Replace placeholders
             command = command.replace("${file}", eventPath.getFileName().toString())
                     .replace("${file_dir}", eventPath.getParent().toString())
                     .replace("${file_with_dir}", eventPath.toString());
@@ -163,8 +157,6 @@ public class DirectoryWatcherApp {
             log.info("Working directory: {}", workingDirectory);
 
             List<String> commandList = new ArrayList<>();
-
-            // Check the operating system
             String os = System.getProperty("os.name").toLowerCase();
             if (os.contains("win")) {
                 // Windows
@@ -176,27 +168,21 @@ public class DirectoryWatcherApp {
                 commandList.add("-c");
             }
 
-            // Add the actual command
             commandList.add(command);
-
 
             ProcessBuilder processBuilder = new ProcessBuilder(commandList);
 
-            // Set the working directory for the process
             if (workingDirectory != null && !workingDirectory.isEmpty()) {
                 processBuilder.directory(new File(workingDirectory));
             }
             Process process = processBuilder.start();
 
-            // Set up StreamGobblers for stdout and stderr
             StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), System.out::println);
             StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), System.err::println);
 
-            // Start the StreamGobblers
             new Thread(outputGobbler).start();
             new Thread(errorGobbler).start();
 
-            // Wait for the process to complete
             int exitCode = process.waitFor();
             log.info("Process exited with code: " + exitCode);
 
