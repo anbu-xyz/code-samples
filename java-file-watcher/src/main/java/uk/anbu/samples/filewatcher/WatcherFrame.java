@@ -12,6 +12,7 @@ public class WatcherFrame {
     private JFrame frame;
     private JTextField directoryField;
     private JCheckBox monitorSubdirectoriesCheckbox;
+    private JCheckBox consolidateChangesCheckbox;
     private JTextField workingDirField;
     private JTextField globPatternsField;
     private JTextField commandField;
@@ -26,11 +27,9 @@ public class WatcherFrame {
 
         // Directory input field and subdirectories checkbox
         directoryField = new JTextField(30);
-        monitorSubdirectoriesCheckbox = new JCheckBox("Monitor Subdirectories");
         JPanel directoryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         directoryPanel.add(new JLabel("Directory to Monitor:"));
         directoryPanel.add(directoryField);
-        directoryPanel.add(monitorSubdirectoriesCheckbox);
 
         // Working directory input field
         workingDirField = new JTextField(30);
@@ -40,15 +39,22 @@ public class WatcherFrame {
 
         // Glob pattern input field
         globPatternsField = new JTextField(30);
-        JPanel globPatternPanel = new JPanel(new FlowLayout());
+        JPanel globPatternPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         globPatternPanel.add(new JLabel("File Glob Pattern:"));
         globPatternPanel.add(globPatternsField);
 
         // Command input field
         commandField = new JTextField(30);
-        JPanel commandPanel = new JPanel(new FlowLayout());
+        JPanel commandPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         commandPanel.add(new JLabel("Command to Trigger:"));
         commandPanel.add(commandField);
+
+        // Checkbox panel
+        JPanel checkboxPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        consolidateChangesCheckbox = new JCheckBox("Consolidate Changes");
+        monitorSubdirectoriesCheckbox = new JCheckBox("Monitor Subdirectories");
+        checkboxPanel.add(monitorSubdirectoriesCheckbox);
+        checkboxPanel.add(consolidateChangesCheckbox);
 
         // Watch Active Checkbox
         watchActiveCheckbox = new JCheckBox("Watch Active");
@@ -62,9 +68,9 @@ public class WatcherFrame {
         inputPanel.add(workingDirPanel);
         inputPanel.add(globPatternPanel);
         inputPanel.add(commandPanel);
+        inputPanel.add(checkboxPanel);
         inputPanel.add(watchPanel);
 
-        // Add components to the frame
         frame.add(inputPanel, BorderLayout.NORTH);
 
         // Watch Active Checkbox listener
@@ -97,7 +103,8 @@ public class WatcherFrame {
                 workingDirField.getText(),
                 commandField.getText(),
                 getGlobPatterns(),
-                monitorSubdirectoriesCheckbox.isSelected()
+                monitorSubdirectoriesCheckbox.isSelected(),
+                consolidateChangesCheckbox.isSelected()
         ));
     }
 
@@ -140,6 +147,7 @@ public class WatcherFrame {
         commandField.setEditable(editable);
         workingDirField.setEditable(editable);
         monitorSubdirectoriesCheckbox.setEnabled(editable);
+        consolidateChangesCheckbox.setEnabled(editable);
 
         Color backgroundColor = editable ? Color.WHITE : Color.LIGHT_GRAY;
         directoryField.setBackground(backgroundColor);
@@ -156,6 +164,7 @@ public class WatcherFrame {
         workingDirField.setText(config.workingDirectory());
         commandField.setText(config.command());
         monitorSubdirectoriesCheckbox.setSelected(config.monitorSubdirectories());
+        consolidateChangesCheckbox.setSelected(config.consolidateChanges());
 
         frame.pack();
         frame.setLocationRelativeTo(null);
@@ -183,5 +192,9 @@ public class WatcherFrame {
 
     public boolean isMonitorSubdirectories() {
         return monitorSubdirectoriesCheckbox.isSelected();
+    }
+
+    public boolean isConsolidateChanges() {
+        return consolidateChangesCheckbox.isSelected();
     }
 }

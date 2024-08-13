@@ -59,6 +59,7 @@ public class DirectoryWatcherApp {
             String directoryPath = watcherFrame.getDirectory();
             List<String> globPatterns = watcherFrame.getGlobPatterns();
             boolean monitorSubdirectories = watcherFrame.isMonitorSubdirectories();
+            boolean consolidateChanges = watcherFrame.isConsolidateChanges();
 
             Path path = Paths.get(directoryPath);
 
@@ -76,12 +77,12 @@ public class DirectoryWatcherApp {
             }
 
             pathMatchers = globPatterns.stream()
-                .map(pattern -> FileSystems.getDefault().getPathMatcher("glob:" + pattern))
-                .collect(Collectors.toList());
+                    .map(pattern -> FileSystems.getDefault().getPathMatcher("glob:" + pattern))
+                    .collect(Collectors.toList());
 
             watchTask = executor.scheduleWithFixedDelay(() -> {
                 try {
-                    processWatchEvents(monitorSubdirectories);
+                    processWatchEvents(monitorSubdirectories, consolidateChanges);
                 } catch (Exception ex) {
                     log.error("Error processing watch events: ", ex);
                 }
@@ -92,27 +93,37 @@ public class DirectoryWatcherApp {
         }
     }
 
-    private void processWatchEvents(boolean monitorSubdirectories) {
+    private void processWatchEvents(boolean monitorSubdirectories, boolean consolidateChanges) {
         WatchKey key;
         while ((key = watchService.poll()) != null) {
             Path dir = watchKeyToPath.get(key);
-            if (dir != null) {
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    Path eventPath = dir.resolve((Path) event.context());
-                    if (pathMatchers.stream().anyMatch(matcher -> matcher.matches(eventPath.getFileName()))) {
-                        log.info("Event of kind {} received {} times for file {}", event.kind(), event.count(), eventPath);
-                        triggerCommand(eventPath);
-                    }
+            if (dir == null) {
+                log.debug("Watch key {} is no longer valid", key);
+                continue;
+            }
+            var polledEvents = key.pollEvents();
+            if (polledEvents == null || polledEvents.isEmpty()) {
+                continue;
+            }
+            var firstEvent = polledEvents.get(0);
+            var restOfEvents = polledEvents.stream().skip(1).toList();
+            Path firstEventPath = dir.resolve((Path) firstEvent.context());
+            if (pathMatchers.stream().anyMatch(matcher -> matcher.matches(firstEventPath.getFileName()))) {
+                if (consolidateChanges) {
+                    triggerCommand(firstEvent, firstEventPath);
+                    restOfEvents.forEach(fi -> log.info("Event of kind {} received {} times for file {}. Ignored due to change consolidation.", fi.kind(), fi.count(), dir.resolve((Path) fi.context())));
+                } else {
+                    polledEvents.forEach(fi -> triggerCommand(fi, dir.resolve((Path) fi.context())));
+                }
+            }
 
-                    // If a new directory is created and we're monitoring subdirectories, register it
-                    if (monitorSubdirectories && Files.isDirectory(eventPath)) {
-                        registerDirectory(eventPath);
-                    }
-                }
-                if (!key.reset()) {
-                    watchKeyToPath.remove(key);
-                    log.info("Watch key {} is no longer valid", key);
-                }
+            // If a new directory is created and we're monitoring subdirectories, register it
+            if (monitorSubdirectories && Files.isDirectory(firstEventPath)) {
+                registerDirectory(firstEventPath);
+            }
+            if (!key.reset()) {
+                watchKeyToPath.remove(key);
+                log.info("Watch key {} is no longer valid", key);
             }
         }
     }
@@ -121,8 +132,8 @@ public class DirectoryWatcherApp {
         try {
             log.info("Registering directory {}", path);
             WatchKey watchKey = path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE,
-                StandardWatchEventKinds.ENTRY_DELETE,
-                StandardWatchEventKinds.ENTRY_MODIFY);
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY);
             watchKeyToPath.put(watchKey, path);
             log.info("Registered directory {} with watch key {}", path, watchKey);
         } catch (Exception ex) {
@@ -137,7 +148,8 @@ public class DirectoryWatcherApp {
         watchKeyToPath.clear();
     }
 
-    private void triggerCommand(Path eventPath) {
+    private void triggerCommand(WatchEvent<?> event, Path eventPath) {
+        log.info("Event of kind {} received {} times for file {}. Triggering command.", event.kind(), event.count(), eventPath);
         try {
             String command = watcherFrame.getCommand();
             String workingDirectory = watcherFrame.getWorkingDirectory();

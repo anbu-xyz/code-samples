@@ -26,6 +26,7 @@ public class ConfigManager {
         configPropertiesFile.setProperty("command", config.command);
         configPropertiesFile.setProperty("globPatterns", String.join(",", config.globPatterns));
         configPropertiesFile.setProperty("monitorSubdirectories", String.valueOf(config.monitorSubdirectories));
+        configPropertiesFile.setProperty("consolidateChanges", String.valueOf(config.consolidateChanges));
 
         try (OutputStream output = new FileOutputStream(configFilePath)) {
             configPropertiesFile.store(output, "Directory Watcher Configuration");
@@ -36,7 +37,7 @@ public class ConfigManager {
 
     public Config loadConfig() {
         Properties configPropertiesFile = new Properties();
-        var defaultConfig = new Config(System.getProperty("user.home"),  System.getProperty("user.home"), "echo 'hello'", List.of("*"), false);
+        var defaultConfig = new Config(System.getProperty("user.home"),  System.getProperty("user.home"), "echo 'hello'", List.of("*"), false, true);
         if (!Path.of(configFilePath).toFile().exists()) {
             saveConfig(defaultConfig);
         }
@@ -49,13 +50,14 @@ public class ConfigManager {
             var workingDirectory = configPropertiesFile.getProperty("workingDirectory", System.getProperty("user.home"));
             var globPatterns = Arrays.asList(configPropertiesFile.getProperty("globPatterns", "*").split(","));
             var monitorSubdirectories = Boolean.parseBoolean(configPropertiesFile.getProperty("monitorSubdirectories", "false"));
-            return new Config(watchedDirectory, workingDirectory, command, globPatterns, monitorSubdirectories);
+            var consolidateChanges = Boolean.parseBoolean(configPropertiesFile.getProperty("consolidateChanges", "false"));
+            return new Config(watchedDirectory, workingDirectory, command, globPatterns, monitorSubdirectories, consolidateChanges);
         } catch (IOException io) {
             log.error("Error reading config file", io);
             return defaultConfig;
         }
     }
 
-    public record Config(String watchedDirectory, String workingDirectory, String command, List<String> globPatterns, boolean monitorSubdirectories) {
+    public record Config(String watchedDirectory, String workingDirectory, String command, List<String> globPatterns, boolean monitorSubdirectories, boolean consolidateChanges) {
     }
 }
