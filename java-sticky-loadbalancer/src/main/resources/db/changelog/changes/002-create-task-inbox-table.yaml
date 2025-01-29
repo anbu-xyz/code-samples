@@ -1,0 +1,36 @@
+databaseChangeLog:
+    - changeSet:
+          id: 002-create-task-inbox-table.yaml
+          author: anbu
+          changes:
+              - createTable:
+                    tableName: task_inbox
+                    columns:
+                        - column:
+                              name: id
+                              type: bigint
+                              autoIncrement: true
+                              constraints:
+                                  primaryKey: true
+                                  nullable: false
+                        - column:
+                              name: message_id
+                              type: varchar(255)
+                              constraints:
+                                  nullable: false
+                                  unique: true
+                        - column:
+                              name: partition_key
+                              type: int
+                              constraints:
+                                  nullable: false
+                        - column:
+                              name: work_number
+                              type: int
+                              constraints:
+                                  nullable: false
+                        - column:
+                              name: created_at_utc
+                              type: timestamp
+                              constraints:
+                                  nullable: false

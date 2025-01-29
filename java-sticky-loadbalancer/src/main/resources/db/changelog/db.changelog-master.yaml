@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: changes/001-distributed-lock-table.yaml
+      relativeToChangelogFile: true
+  - include:
+        file: changes/002-create-task-inbox-table.yaml
+        relativeToChangelogFile: true

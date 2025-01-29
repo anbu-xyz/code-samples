@@ -1,0 +1,29 @@
+databaseChangeLog:
+    -   changeSet:
+          id: 001-distributed-lock-table.yaml
+          author: anbu
+          changes:
+              -   createTable:
+                      tableName: int_lock
+                      columns:
+                            -   column:
+                                    name: lock_key
+                                    type: varchar(36)
+                                    constraints:
+                                        primaryKey: true
+                                        nullable: false
+                            -   column:
+                                    name: region
+                                    type: varchar(100)
+                                    constraints:
+                                        nullable: false
+                            -   column:
+                                    name: client_id
+                                    type: varchar(36)
+                                    constraints:
+                                        nullable: false
+                            -   column:
+                                    name: created_date
+                                    type: timestamp
+                                    constraints:
+                                        nullable: false
