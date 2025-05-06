@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -118,7 +117,7 @@ public class DirectoryWatcherApp {
             }
             if (!key.reset()) {
                 watchKeyToPath.remove(key);
-                log.info("Watch key {} is no longer valid", key);
+                log.debug("Watch key {} is no longer valid", key);
             }
         }
     }
