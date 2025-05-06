@@ -9,6 +9,7 @@ import uk.anbu.poc.stickyloadbalancer.entity.TaskInbox;
 import uk.anbu.poc.stickyloadbalancer.repository.TaskInboxRepository;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
@@ -16,23 +17,35 @@ import java.util.List;
 public class TaskProcessor {
 
     private final TaskInboxRepository taskInboxRepository;
+    private final AtomicInteger threadCount = new AtomicInteger();
     private final LockRegistry lockRegistry;
     @Transactional
     public void processTasks(int partitionKey) {
 
-        Thread.ofVirtual().name("P-"+ partitionKey).start(() -> {
+        Thread.ofVirtual().name("P-"+ partitionKey + "-" + threadCount.incrementAndGet()).start(() -> {
             var lock = lockRegistry.obtain("P-"+ partitionKey);
             if (lock.tryLock()) {
                 try {
-                    var tasks = taskInboxRepository.findByPartitionKeyOrderById(partitionKey);
-                    for (TaskInbox task : tasks) {
-                        log.info("Processing task: MessageId={}, PartitionKey={}, WorkNumber={}",
-                            task.getMessageId(),
-                            task.getPartitionKey(),
-                            task.getWorkNumber());
+                    List<TaskInbox> tasks = taskInboxRepository.findByPartitionKeyOrderById(partitionKey);
+                    while(!tasks.isEmpty()) {
+                        for (TaskInbox task : tasks) {
+                            log.info("Processing task: MessageId={}, PartitionKey={}, WorkNumber={}",
+                                task.getMessageId(),
+                                task.getPartitionKey(),
+                                task.getWorkNumber());
 
-                        // TODO: Process task
-                        taskInboxRepository.delete(task);
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                // ignore.
+                            }
+                            log.info("Done task: MessageId={}, PartitionKey={}, WorkNumber={}",
+                                task.getMessageId(),
+                                task.getPartitionKey(),
+                                task.getWorkNumber());
+                            taskInboxRepository.delete(task);
+                        }
+                        tasks = taskInboxRepository.findByPartitionKeyOrderById(partitionKey);
                     }
                 } finally {
                     lock.unlock();
