@@ -49,16 +49,16 @@ trap 'restore_and_exit 1' ERR INT TERM
 if git show-ref --verify --quiet "refs/heads/$COMPANION_BRANCH"; then
     echo "Companion branch exists, updating it..."
 
-    # Get the base commit of companion branch (where it diverged)
     COMPANION_BASE=$(git rev-parse "$COMPANION_BRANCH")
-
-    git diff "$COMPANION_BASE..$CURRENT_COMMIT" > /tmp/tiny-commit.patch
+    ## remove any non-file-name characters from the branch name
+    PATCH_FILE_NAME="${COMPANION_BASE//[^a-zA-Z0-9]/}-$(date +%s).patch"
+    git diff "$COMPANION_BASE..$CURRENT_COMMIT" > /tmp/${PATCH_FILE_NAME}
     git checkout "$COMPANION_BRANCH"
 
-    if [ -s /tmp/tiny-commit.patch ]; then
-        git apply --index /tmp/tiny-commit.patch 2>/dev/null || git apply /tmp/tiny-commit.patch
+    if [ -s /tmp/${PATCH_FILE_NAME} ]; then
+        git apply --index /tmp/${PATCH_FILE_NAME} 2>/dev/null || git apply /tmp/${PATCH_FILE_NAME}
     fi
-    rm -f /tmp/tiny-commit.patch
+    rm -f /tmp/${PATCH_FILE_NAME}
 
     git commit -m "$COMMIT_MESSAGE"
     echo "✓ Updated companion branch with new commit"
@@ -78,5 +78,5 @@ git reset --soft HEAD~1
 echo "------------------------"
 echo "✓ Tiny commit completed!"
 echo "------------------------"
-
+echo " "
 git log ${CURRENT_BRANCH}..${COMPANION_BRANCH} --oneline
